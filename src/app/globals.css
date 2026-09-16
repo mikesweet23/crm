@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f7f8;
+  --foreground: #3f3f42;
+  --brand: #e5772a;
+  --brand-strong: #c25e19;
+  --brand-soft: #fdecdf;
+  --brand-grey: #6f6f6f;
+  --card: #ffffff;
+  --line: #e2e8f0;
+  --muted: #62748e;
+  --ink: #0f172b;
+  --danger: #b42318;
+  --danger-soft: #fef3f2;
+  --success: #007956;
+  --success-soft: #ecfdf5;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-grey: var(--brand-grey);
+  --color-card: var(--card);
+  --color-line: var(--line);
+  --color-muted: var(--muted);
+  --color-ink: var(--ink);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(1200px 600px at 100% -10%, #fde4d1 0%, #fde4d100 55%),
+    radial-gradient(900px 500px at -10% 0%, #d6f1ec 0%, #d6f1ec00 45%),
+    var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes soft-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.animate-fade-up {
+  animation: 0.35s both fade-up;
+}
+
+.animate-soft-pulse {
+  animation: soft-pulse 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Pipeline horizontal scroll */
+.pipeline-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cad5e2 transparent;
+}
+
+.pipeline-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.pipeline-scroll::-webkit-scrollbar-thumb {
+  background: #cad5e2;
+  border-radius: 999px;
+}
