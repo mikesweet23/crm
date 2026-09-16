@@ -418,6 +418,14 @@ export function isDemoMode(): boolean {
   return !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 }
 
+export function demoGetProfile(id: string) {
+  return db().profiles.find((p) => p.id === id) ?? null;
+}
+
+export function demoFindUserByEmail(email: string) {
+  return db().profiles.find((p) => p.email.toLowerCase() === email.toLowerCase()) ?? null;
+}
+
 export function demoGetSession() {
   const store = db();
   if (!store.sessionUserId) return null;

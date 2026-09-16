@@ -1,12 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isDemoMode } from "@/lib/data/demo-store";
+import { DEMO_SESSION_COOKIE } from "@/lib/data/demo-cookie";
 
 const PUBLIC_PATHS = ["/login", "/enquiry", "/api/enquiries", "/api/auth"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Always allow static assets and public routes
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
@@ -17,19 +17,25 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // In demo mode, session is in-memory on the server — pages enforce auth themselves.
-  // When Supabase is configured, refresh the session cookie here.
-  if (!isDemoMode()) {
-    // Lightweight gate: require presence of a Supabase auth cookie for private pages.
-    const hasAuth = request.cookies
-      .getAll()
-      .some((c) => c.name.includes("sb-") && c.name.includes("auth-token"));
-    if (!hasAuth && !pathname.startsWith("/api/")) {
+  if (isDemoMode()) {
+    const hasDemo = Boolean(request.cookies.get(DEMO_SESSION_COOKIE)?.value);
+    if (!hasDemo && !pathname.startsWith("/api/")) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
       url.searchParams.set("next", pathname);
       return NextResponse.redirect(url);
     }
+    return NextResponse.next();
+  }
+
+  const hasAuth = request.cookies
+    .getAll()
+    .some((c) => c.name.includes("sb-") && c.name.includes("auth-token"));
+  if (!hasAuth && !pathname.startsWith("/api/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("next", pathname);
+    return NextResponse.redirect(url);
   }
 
   return NextResponse.next();
