@@ -87,7 +87,7 @@ export function EmbedEnquiryClient() {
       // With the body switched to block flow (above) the wrapper's box is an
       // accurate measure of content height. The buffer absorbs shadows and
       // sub-pixel rounding so the submit button is never clipped.
-      const height = Math.ceil(el.getBoundingClientRect().height) + 24;
+      const height = Math.ceil(el.getBoundingClientRect().height) + 40;
       if (height > 24 && height !== last) {
         last = height;
         window.parent?.postMessage({ type: "am-embed-height", height }, "*");
@@ -117,7 +117,7 @@ export function EmbedEnquiryClient() {
   }, []);
 
   return (
-    <div ref={rootRef} className="p-2 sm:p-3">
+    <div ref={rootRef} className="px-2 pt-2 pb-6 sm:px-3 sm:pt-3">
       <div className="mx-auto w-full max-w-[640px]">
         <EnquiryForm {...config} />
       </div>
