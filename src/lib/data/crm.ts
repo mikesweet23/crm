@@ -4,16 +4,19 @@ import {
   demoCreateEnquiry,
   demoDashboard,
   demoGetContact,
-  demoGetSession,
+  demoGetProfile,
   demoListContacts,
-  demoLogin,
-  demoLogout,
-  demoMarkDnc,
   demoAddActivity,
   demoPipelineContacts,
   demoUpdateContact,
+  demoMarkDnc,
   isDemoMode,
 } from "@/lib/data/demo-store";
+import {
+  clearDemoUserCookie,
+  getDemoUserIdFromCookie,
+  setDemoUserCookie,
+} from "@/lib/data/demo-auth";
 import type {
   Activity,
   Appointment,
@@ -29,7 +32,11 @@ export { isDemoMode };
 
 export async function getSession() {
   if (isDemoMode()) {
-    return demoGetSession();
+    const userId = await getDemoUserIdFromCookie();
+    if (!userId) return null;
+    const profile = demoGetProfile(userId);
+    if (!profile) return null;
+    return { user: { id: profile.id, email: profile.email }, profile };
   }
   const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
@@ -55,11 +62,13 @@ export async function requireSession() {
 
 export async function loginWithPassword(email: string, password: string) {
   if (isDemoMode()) {
-    // Demo accepts any password for known demo users
-    const profile = demoLogin(email);
+    void password;
+    const { demoFindUserByEmail } = await import("@/lib/data/demo-store");
+    const profile = demoFindUserByEmail(email);
     if (!profile) {
       return { error: "Unknown demo user. Try paula@paulasweet.co.uk or mike@absolutemind.co.uk" };
     }
+    await setDemoUserCookie(profile.id);
     return { profile };
   }
   const { createClient } = await import("@/lib/supabase/server");
@@ -71,7 +80,7 @@ export async function loginWithPassword(email: string, password: string) {
 
 export async function logout() {
   if (isDemoMode()) {
-    demoLogout();
+    await clearDemoUserCookie();
     return;
   }
   const { createClient } = await import("@/lib/supabase/server");
