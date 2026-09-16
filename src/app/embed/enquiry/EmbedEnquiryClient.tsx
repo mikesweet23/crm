@@ -41,35 +41,53 @@ export function EmbedEnquiryClient() {
     showSource: has("source"),
   };
 
-  // Make the embed blend into the host page and remove default UA chrome.
+  // Blend the embed into the host page. The app shell renders the form inside a
+  // `min-h-full flex flex-col` <body>; as a lone flex item the form gets shrunk
+  // (its submit button collapses). Switching the body to a plain block for the
+  // embed restores natural flow. We also drop the UA margin and let the surface
+  // be transparent so the form sits directly on the host page.
   useLayoutEffect(() => {
-    const prevBodyBg = document.body.style.background;
-    const prevBodyMargin = document.body.style.margin;
-    const prevHtmlBg = document.documentElement.style.background;
-    document.body.style.margin = "0";
-    if (bg === "white") {
-      document.body.style.background = "#ffffff";
-      document.documentElement.style.background = "#ffffff";
-    } else {
-      document.body.style.background = "transparent";
-      document.documentElement.style.background = "transparent";
-    }
+    const body = document.body;
+    const html = document.documentElement;
+    const prev = {
+      bodyBg: body.style.background,
+      bodyMargin: body.style.margin,
+      bodyMinHeight: body.style.minHeight,
+      bodyDisplay: body.style.display,
+      htmlBg: html.style.background,
+    };
+    body.style.margin = "0";
+    body.style.minHeight = "0";
+    body.style.display = "block";
+    const surface = bg === "white" ? "#ffffff" : "transparent";
+    body.style.background = surface;
+    html.style.background = surface;
     return () => {
-      document.body.style.background = prevBodyBg;
-      document.body.style.margin = prevBodyMargin;
-      document.documentElement.style.background = prevHtmlBg;
+      body.style.background = prev.bodyBg;
+      body.style.margin = prev.bodyMargin;
+      body.style.minHeight = prev.bodyMinHeight;
+      body.style.display = prev.bodyDisplay;
+      html.style.background = prev.htmlBg;
     };
   }, [bg]);
 
-  // Report height to the parent window so the iframe can auto-resize.
+  // Report height to the parent window so the iframe can auto-resize. We measure
+  // only the content wrapper — its height is independent of the iframe height, so
+  // there is no resize feedback loop. The buffer keeps shadows / sub-pixel
+  // rounding from clipping the submit button.
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
 
     let last = 0;
     const post = () => {
-      const height = Math.ceil(el.getBoundingClientRect().height);
-      if (height > 0 && height !== last) {
+      const rect = el.getBoundingClientRect();
+      const lastChild = el.lastElementChild as HTMLElement | null;
+      const innerBottom = lastChild
+        ? lastChild.getBoundingClientRect().bottom - rect.top
+        : 0;
+      const height = Math.ceil(Math.max(rect.height, innerBottom)) + 12;
+      if (height > 12 && height !== last) {
         last = height;
         window.parent?.postMessage({ type: "am-embed-height", height }, "*");
       }
@@ -79,12 +97,15 @@ export function EmbedEnquiryClient() {
     const ro = new ResizeObserver(post);
     ro.observe(el);
     window.addEventListener("load", post);
-    // A couple of delayed posts catch late web-font / layout shifts.
-    const timers = [setTimeout(post, 250), setTimeout(post, 800)];
+    window.addEventListener("resize", post);
+    if (document.fonts?.ready) document.fonts.ready.then(post).catch(() => {});
+    // A few delayed posts catch late web-font / layout shifts.
+    const timers = [setTimeout(post, 150), setTimeout(post, 500), setTimeout(post, 1200)];
 
     return () => {
       ro.disconnect();
       window.removeEventListener("load", post);
+      window.removeEventListener("resize", post);
       timers.forEach(clearTimeout);
     };
   }, []);
