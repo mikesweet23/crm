@@ -55,10 +55,12 @@ export function EmbedEnquiryClient() {
       bodyMinHeight: body.style.minHeight,
       bodyDisplay: body.style.display,
       htmlBg: html.style.background,
+      htmlHeight: html.style.height,
     };
     body.style.margin = "0";
     body.style.minHeight = "0";
     body.style.display = "block";
+    html.style.height = "auto";
     const surface = bg === "white" ? "#ffffff" : "transparent";
     body.style.background = surface;
     html.style.background = surface;
@@ -68,6 +70,7 @@ export function EmbedEnquiryClient() {
       body.style.minHeight = prev.bodyMinHeight;
       body.style.display = prev.bodyDisplay;
       html.style.background = prev.htmlBg;
+      html.style.height = prev.htmlHeight;
     };
   }, [bg]);
 
@@ -81,13 +84,11 @@ export function EmbedEnquiryClient() {
 
     let last = 0;
     const post = () => {
-      const rect = el.getBoundingClientRect();
-      const lastChild = el.lastElementChild as HTMLElement | null;
-      const innerBottom = lastChild
-        ? lastChild.getBoundingClientRect().bottom - rect.top
-        : 0;
-      const height = Math.ceil(Math.max(rect.height, innerBottom)) + 12;
-      if (height > 12 && height !== last) {
+      // With the body switched to block flow (above) the wrapper's box is an
+      // accurate measure of content height. The buffer absorbs shadows and
+      // sub-pixel rounding so the submit button is never clipped.
+      const height = Math.ceil(el.getBoundingClientRect().height) + 24;
+      if (height > 24 && height !== last) {
         last = height;
         window.parent?.postMessage({ type: "am-embed-height", height }, "*");
       }
@@ -99,14 +100,19 @@ export function EmbedEnquiryClient() {
     window.addEventListener("load", post);
     window.addEventListener("resize", post);
     if (document.fonts?.ready) document.fonts.ready.then(post).catch(() => {});
-    // A few delayed posts catch late web-font / layout shifts.
-    const timers = [setTimeout(post, 150), setTimeout(post, 500), setTimeout(post, 1200)];
+    // Delayed + short polling catches late web-font / layout shifts and any
+    // resize message that was missed during a load race.
+    const timeouts = [80, 200, 400, 700, 1100, 1600, 2200].map((ms) => setTimeout(post, ms));
+    const poll = setInterval(post, 400);
+    const stopPoll = setTimeout(() => clearInterval(poll), 4000);
 
     return () => {
       ro.disconnect();
       window.removeEventListener("load", post);
       window.removeEventListener("resize", post);
-      timers.forEach(clearTimeout);
+      timeouts.forEach(clearTimeout);
+      clearInterval(poll);
+      clearTimeout(stopPoll);
     };
   }, []);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Label, Select, Textarea } from "@/components/ui/Field";
@@ -152,12 +152,13 @@ function CopyButton({ text }: { text: string }) {
 
 export function FormsBuilder() {
   const [state, setState] = useState<BuilderState>(INITIAL);
-  const [origin, setOrigin] = useState("");
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
-
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
+  // Read the origin without a hydration mismatch or setState-in-effect.
+  const origin = useSyncExternalStore(
+    () => () => {},
+    () => window.location.origin,
+    () => "",
+  );
 
   const params = useMemo(() => buildParams(state).toString(), [state]);
   const previewSrc = `/embed/${state.form}${params ? `?${params}` : ""}`;
