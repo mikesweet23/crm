@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isDemoMode } from "@/lib/data/demo-store";
 import { DEMO_SESSION_COOKIE } from "@/lib/data/demo-cookie";
 
-const PUBLIC_PATHS = ["/login", "/enquiry", "/api/enquiries", "/api/auth"];
+const PUBLIC_PATHS = ["/login", "/enquiry", "/embed", "/api/enquiries", "/api/auth"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -12,6 +12,7 @@ export function proxy(request: NextRequest) {
     pathname.startsWith("/favicon") ||
     pathname.startsWith("/icon") ||
     pathname.startsWith("/absolute-mind") ||
+    pathname === "/embed.js" ||
     PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
   ) {
     return NextResponse.next();

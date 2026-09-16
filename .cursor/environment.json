@@ -1,0 +1,11 @@
+{
+  "name": "Absolute Mind CRM",
+  "install": "npm ci && cp -n .env.example .env.local 2>/dev/null; true",
+  "terminals": [
+    {
+      "name": "dev",
+      "command": "npm run dev"
+    }
+  ],
+  "ports": [3000]
+}

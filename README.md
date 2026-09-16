@@ -26,7 +26,7 @@ npm run dev
 
 With `DEMO_MODE=true` (default when Supabase is not configured), you can sign in as:
 
-- `paula@absolutemind.co.uk` (any password)
+- `paula@paulasweet.co.uk` (any password)
 - `mike@absolutemind.co.uk` (any password)
 
 Open [http://localhost:3000](http://localhost:3000).
@@ -41,8 +41,38 @@ Open [http://localhost:3000](http://localhost:3000).
 | `/contacts` | Contact list |
 | `/contacts/[id]` | Contact detail, important note, actions, full timeline |
 | `/search` | Global name / email / phone search |
+| `/forms` | Form builder — configure and copy embeddable contact forms for WordPress |
 | `/settings` | Small settings surface |
 | `/enquiry` | Public Absolute Mind enquiry form |
+| `/embed/enquiry` | Framed, self-resizing enquiry form for embedding on other sites |
+
+## Embeddable forms (WordPress)
+
+Paula's website is WordPress. The CRM can generate contact forms that live on any
+WordPress page and send enquiries straight into the pipeline.
+
+- Build and preview forms at `/forms`. Choose a template (full enquiry, quick
+  callback, booking funnel), pick fields, set the accent colour and lead source,
+  optionally send people to the booking diary after submitting, then copy the code.
+- **Recommended embed** — auto-resizes on mobile and desktop. Paste into a
+  WordPress “Custom HTML” block:
+
+  ```html
+  <div data-absolute-mind-form data-form="enquiry" data-source="Website"></div>
+  <script src="https://crm.absolutemind.co.uk/embed.js" async></script>
+  ```
+
+- **Plain iframe** — for a fixed height without the script:
+
+  ```html
+  <iframe src="https://crm.absolutemind.co.uk/embed/enquiry" title="Absolute Mind enquiry form"
+    width="100%" height="720" loading="lazy" style="border:0;max-width:640px"></iframe>
+  ```
+
+The embed route (`/embed/enquiry`) accepts query parameters: `source`, `heading`,
+`intro`, `accent`, `submit`, `fields` (comma list of `phone,preferred,category,message,marketing,source`),
+`bg` (`transparent`/`white`), `compact`, and `redirect` (booking URL shown after submit).
+Cross-site framing is allowed via a `frame-ancestors` policy on `/embed/*`.
 
 ## Database
 

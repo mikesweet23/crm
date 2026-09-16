@@ -66,7 +66,7 @@ export async function loginWithPassword(email: string, password: string) {
     const { demoFindUserByEmail } = await import("@/lib/data/demo-store");
     const profile = demoFindUserByEmail(email);
     if (!profile) {
-      return { error: "Unknown demo user. Try paula@absolutemind.co.uk or mike@absolutemind.co.uk" };
+      return { error: "Unknown demo user. Try paula@paulasweet.co.uk or mike@absolutemind.co.uk" };
     }
     await setDemoUserCookie(profile.id);
     return { profile };

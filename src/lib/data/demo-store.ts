@@ -24,7 +24,7 @@ function hoursAgo(hours: number): string {
 
 const PAULA: Profile = {
   id: "00000000-0000-4000-8000-000000000001",
-  email: "paula@absolutemind.co.uk",
+  email: "paula@paulasweet.co.uk",
   full_name: "Paula",
   role: "owner",
   created_at: hoursAgo(24 * 30),

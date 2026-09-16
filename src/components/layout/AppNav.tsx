@@ -11,6 +11,7 @@ const NAV = [
   { href: "/pipeline", label: "Pipeline" },
   { href: "/contacts", label: "Contacts" },
   { href: "/search", label: "Search" },
+  { href: "/forms", label: "Forms" },
   { href: "/settings", label: "Settings" },
 ];
 
