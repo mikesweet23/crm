@@ -26,7 +26,7 @@ npm run dev
 
 With `DEMO_MODE=true` (default when Supabase is not configured), you can sign in as:
 
-- `paula@absolutemind.co.uk` (any password)
+- `paula@paulasweet.co.uk` (any password)
 - `mike@absolutemind.co.uk` (any password)
 
 Open [http://localhost:3000](http://localhost:3000).

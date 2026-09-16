@@ -36,7 +36,7 @@ export default function SettingsPage() {
           <ul className="mt-4 space-y-3">
             <li className="rounded-xl border border-slate-100 px-3 py-2.5">
               <p className="font-medium text-ink">Paula</p>
-              <p className="text-sm text-muted">Owner · paula@absolutemind.co.uk</p>
+              <p className="text-sm text-muted">Owner · paula@paulasweet.co.uk</p>
             </li>
             <li className="rounded-xl border border-slate-100 px-3 py-2.5">
               <p className="font-medium text-ink">Mike</p>
@@ -88,7 +88,8 @@ export default function SettingsPage() {
             and updates.
           </p>
           <p className="mt-3 text-sm text-muted">
-            Public form: <code className="text-ink">/enquiry</code>
+            Public form: <code className="text-ink">/enquiry</code> · Embeddable form &amp; WordPress
+            code: <code className="text-ink">/forms</code>
           </p>
         </Card>
 

@@ -58,7 +58,7 @@ export async function loginWithPassword(email: string, password: string) {
     // Demo accepts any password for known demo users
     const profile = demoLogin(email);
     if (!profile) {
-      return { error: "Unknown demo user. Try paula@absolutemind.co.uk or mike@absolutemind.co.uk" };
+      return { error: "Unknown demo user. Try paula@paulasweet.co.uk or mike@absolutemind.co.uk" };
     }
     return { profile };
   }

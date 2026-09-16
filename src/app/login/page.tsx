@@ -8,7 +8,7 @@ import { Field, Input } from "@/components/ui/Field";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("paula@absolutemind.co.uk");
+  const [email, setEmail] = useState("paula@paulasweet.co.uk");
   const [password, setPassword] = useState("demo");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -88,7 +88,7 @@ export default function LoginPage() {
           </Button>
 
           <p className="mt-4 text-center text-xs text-muted">
-            Demo: paula@absolutemind.co.uk or mike@absolutemind.co.uk (any password)
+            Demo: paula@paulasweet.co.uk or mike@absolutemind.co.uk (any password)
           </p>
         </form>
       </div>
