@@ -366,6 +366,57 @@ export async function addActivity(input: {
   return data;
 }
 
+/**
+ * Insert a system-generated activity, bypassing RLS via the service-role
+ * client. For anonymous public-route callers (e.g. the post-submission
+ * acknowledgement log in `/api/enquiries`) the authenticated server client
+ * used by `addActivity()` has no session, so RLS rejects the insert and the
+ * request 500s *after* the enquiry was already stored.
+ *
+ * Narrowly scoped on purpose: the caller cannot set authorship (always the
+ * System automatic actor) and only the activity types used for
+ * system-generated acknowledgement logging are allowed. Staff-authored
+ * activity must keep going through the RLS-protected `addActivity()`.
+ */
+export async function addSystemActivity(input: {
+  contact_id: string;
+  activity_type: "email_sent" | "note";
+  title: string;
+  body?: string | null;
+}) {
+  const system = {
+    contact_id: input.contact_id,
+    activity_type: input.activity_type,
+    title: input.title,
+    body: input.body ?? null,
+    created_by: null,
+    created_by_name: "System",
+    automatic: true,
+  };
+  if (isDemoMode()) return demoAddActivity(system);
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("activities")
+    .insert({
+      contact_id: system.contact_id,
+      activity_type: system.activity_type,
+      title: system.title,
+      body: system.body,
+      created_by: null,
+      created_by_name: "System",
+      automatic: true,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  await admin
+    .from("contacts")
+    .update({ last_activity_at: new Date().toISOString() })
+    .eq("id", system.contact_id);
+  return data;
+}
+
 export async function markDoNotContact(
   id: string,
   reason: string,
