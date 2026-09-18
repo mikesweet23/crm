@@ -58,7 +58,15 @@ function accentStyle(accent?: string | null): CSSProperties | undefined {
 }
 
 export function EnquiryForm(props: EnquiryFormConfig) {
-  const cfg = { ...DEFAULTS, ...props };
+  // Callers (e.g. the embed) may pass explicit `undefined` values, which would
+  // otherwise override the defaults when spread.
+  const cfg = {
+    ...DEFAULTS,
+    ...props,
+    source: props.source || DEFAULTS.source,
+    submitLabel: props.submitLabel || DEFAULTS.submitLabel,
+    privacyUrl: props.privacyUrl || DEFAULTS.privacyUrl,
+  };
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
