@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { submitEnquiry, addActivity, isDemoMode } from "@/lib/data/crm";
+import { submitEnquiry, addActivity } from "@/lib/data/crm";
 import { sendEnquiryAcknowledgement, sendPaulaEnquiryEmail } from "@/lib/email/send";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 const schema = z.object({
   first_name: z.string().trim().min(1).max(80),
@@ -13,7 +14,7 @@ const schema = z.object({
   lead_source: z.string().trim().max(80).optional(),
   marketing_email: z.boolean().optional(),
   privacy: z.boolean().optional(),
-  turnstile_token: z.string().optional(),
+  turnstile_token: z.string().max(2048).optional(),
   landing_page: z.string().optional(),
   utm_source: z.string().optional(),
   utm_medium: z.string().optional(),
@@ -24,24 +25,20 @@ const schema = z.object({
 
 const recentSubmissions = new Map<string, number>();
 
-async function verifyTurnstile(token: string | undefined, ip: string | null) {
-  const secret = process.env.TURNSTILE_SECRET_KEY;
-  if (!secret) {
-    // Allow in demo / until Turnstile is configured
-    return isDemoMode() || token === "demo" || Boolean(token);
-  }
-  if (!token) return false;
-  const body = new URLSearchParams();
-  body.set("secret", secret);
-  body.set("response", token);
-  if (ip) body.set("remoteip", ip);
-  const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-    method: "POST",
-    body,
-  });
-  const data = (await res.json()) as { success?: boolean };
-  return Boolean(data.success);
-}
+const TURNSTILE_ERRORS = {
+  missing: {
+    status: 400,
+    error: "Please complete the spam check and try again.",
+  },
+  invalid: {
+    status: 400,
+    error: "Spam check failed. Please refresh the page and try again.",
+  },
+  unavailable: {
+    status: 503,
+    error: "The spam check is temporarily unavailable. Please try again in a moment.",
+  },
+} as const;
 
 export async function POST(request: Request) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
@@ -60,9 +57,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "Privacy acknowledgement is required." }, { status: 400 });
   }
 
-  const ok = await verifyTurnstile(parsed.data.turnstile_token, ip);
-  if (!ok) {
-    return Response.json({ error: "Spam check failed. Please try again." }, { status: 400 });
+  const turnstile = await verifyTurnstileToken(parsed.data.turnstile_token, ip);
+  if (!turnstile.ok) {
+    const { status, error } = TURNSTILE_ERRORS[turnstile.reason];
+    return Response.json({ error, code: `turnstile_${turnstile.reason}` }, { status });
   }
 
   recentSubmissions.set(ip, now);
