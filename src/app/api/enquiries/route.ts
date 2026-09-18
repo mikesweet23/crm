@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { submitEnquiry, addSystemActivity } from "@/lib/data/crm";
 import { sendEnquiryAcknowledgement, sendPaulaEnquiryEmail } from "@/lib/email/send";
+import { ACK_LABEL, NOTIFY_LABEL, emailActivity } from "@/lib/email/activity";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 
 const schema = z.object({
@@ -85,43 +86,30 @@ export async function POST(request: Request) {
     },
   });
 
-  await sendPaulaEnquiryEmail({ contact: result.contact, enquiry: result.enquiry });
+  // The enquiry is already stored. Send both emails independently and
+  // best-effort — the acknowledgement to the enquirer and a separate
+  // notification to Paula — so one failing must not stop the other or fail the
+  // request. Both helpers catch their own errors and return a status; the
+  // acknowledgement self-skips for Do Not Contact / missing email.
+  const [notifyResult, ackResult] = await Promise.all([
+    sendPaulaEnquiryEmail({ contact: result.contact, enquiry: result.enquiry }),
+    sendEnquiryAcknowledgement({ contact: result.contact }),
+  ]);
 
-  if (!result.isDnc) {
-    const ack = await sendEnquiryAcknowledgement({ contact: result.contact });
-    // System-generated log of the acknowledgement outcome. This must never
-    // turn an already-stored enquiry into a 500, so failures are logged and
-    // the request still returns success below.
-    const logAckActivity = async (activity: Parameters<typeof addSystemActivity>[0]) => {
+  // Log each outcome as its own activity so the timeline shows exactly which
+  // email was sent, skipped, or failed. Logging must never 500 a stored enquiry.
+  await Promise.all(
+    [
+      emailActivity(result.contact.id, NOTIFY_LABEL, notifyResult),
+      emailActivity(result.contact.id, ACK_LABEL, ackResult),
+    ].map(async (activity) => {
       try {
         await addSystemActivity(activity);
       } catch (err) {
-        console.error("Failed to log acknowledgement activity:", err);
+        console.error(`Failed to log email activity "${activity.title}":`, err);
       }
-    };
-    if (ack.status === "sent") {
-      await logAckActivity({
-        contact_id: result.contact.id,
-        activity_type: "email_sent",
-        title: "Acknowledgement email sent to provider",
-        body: "Submitted to the email provider and accepted. Provider acceptance does not confirm delivery to the recipient's inbox.",
-      });
-    } else if (ack.status === "skipped") {
-      await logAckActivity({
-        contact_id: result.contact.id,
-        activity_type: "note",
-        title: "Acknowledgement email not sent",
-        body: `No acknowledgement email was sent — ${ack.reason}.`,
-      });
-    } else {
-      await logAckActivity({
-        contact_id: result.contact.id,
-        activity_type: "note",
-        title: "Acknowledgement email failed",
-        body: `The email provider returned an error, so no acknowledgement was sent — ${ack.reason}.`,
-      });
-    }
-  }
+    }),
+  );
 
   return Response.json({
     ok: true,
