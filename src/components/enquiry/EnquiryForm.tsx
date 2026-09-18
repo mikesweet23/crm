@@ -1,11 +1,14 @@
 "use client";
 
-import { FormEvent, useState, useTransition } from "react";
+import { FormEvent, useCallback, useState, useTransition } from "react";
 import type { CSSProperties } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
+import { Turnstile } from "@/components/enquiry/Turnstile";
 import { HELP_CATEGORIES, LEAD_SOURCES } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 export interface EnquiryFormConfig {
   source?: string;
@@ -56,6 +59,13 @@ export function EnquiryForm(props: EnquiryFormConfig) {
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // Cloudflare Turnstile state (only used when a site key is configured).
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileNonce, setTurnstileNonce] = useState(0);
+  const onTurnstileToken = useCallback(
+    (token: string) => setTurnstileToken(token),
+    [setTurnstileToken],
+  );
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -66,6 +76,11 @@ export function EnquiryForm(props: EnquiryFormConfig) {
     // Honeypot — silently succeed for bots
     if (String(fd.get("company") || "")) {
       setDone(true);
+      return;
+    }
+
+    if (TURNSTILE_SITE_KEY && !turnstileToken) {
+      setError("Please complete the verification below before submitting.");
       return;
     }
 
@@ -84,7 +99,7 @@ export function EnquiryForm(props: EnquiryFormConfig) {
           lead_source: fd.get("lead_source") || cfg.source,
           marketing_email: fd.get("marketing_email") === "on",
           privacy: fd.get("privacy") === "on",
-          turnstile_token: fd.get("cf-turnstile-response") || "demo",
+          turnstile_token: TURNSTILE_SITE_KEY ? turnstileToken : "demo",
           landing_page:
             typeof window !== "undefined"
               ? document.referrer || window.location.href
@@ -94,6 +109,11 @@ export function EnquiryForm(props: EnquiryFormConfig) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(data.error || "Unable to send enquiry");
+        // Turnstile tokens are single-use — get a fresh one for any retry.
+        if (TURNSTILE_SITE_KEY) {
+          setTurnstileToken("");
+          setTurnstileNonce((n) => n + 1);
+        }
         return;
       }
       setDone(true);
@@ -133,7 +153,11 @@ export function EnquiryForm(props: EnquiryFormConfig) {
             <button
               type="button"
               className="mt-6 text-sm font-medium text-brand"
-              onClick={() => setDone(false)}
+              onClick={() => {
+                setDone(false);
+                setTurnstileToken("");
+                setTurnstileNonce((n) => n + 1);
+              }}
             >
               Send another enquiry
             </button>
@@ -259,8 +283,13 @@ export function EnquiryForm(props: EnquiryFormConfig) {
             </span>
           </label>
 
-          {/* Turnstile placeholder — configure site key in production */}
-          <input type="hidden" name="cf-turnstile-response" value="demo" />
+          {TURNSTILE_SITE_KEY ? (
+            <Turnstile
+              key={turnstileNonce}
+              siteKey={TURNSTILE_SITE_KEY}
+              onToken={onTurnstileToken}
+            />
+          ) : null}
 
           {error ? (
             <p className="rounded-xl bg-danger-soft px-3 py-2 text-sm font-medium text-danger">
