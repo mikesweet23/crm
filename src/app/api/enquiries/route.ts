@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { submitEnquiry, addActivity } from "@/lib/data/crm";
+import { submitEnquiry, addSystemActivity } from "@/lib/data/crm";
 import { sendEnquiryAcknowledgement, sendPaulaEnquiryEmail } from "@/lib/email/send";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 
@@ -89,32 +89,36 @@ export async function POST(request: Request) {
 
   if (!result.isDnc) {
     const ack = await sendEnquiryAcknowledgement({ contact: result.contact });
+    // System-generated log of the acknowledgement outcome. This must never
+    // turn an already-stored enquiry into a 500, so failures are logged and
+    // the request still returns success below.
+    const logAckActivity = async (activity: Parameters<typeof addSystemActivity>[0]) => {
+      try {
+        await addSystemActivity(activity);
+      } catch (err) {
+        console.error("Failed to log acknowledgement activity:", err);
+      }
+    };
     if (ack.status === "sent") {
-      await addActivity({
+      await logAckActivity({
         contact_id: result.contact.id,
         activity_type: "email_sent",
         title: "Acknowledgement email sent to provider",
         body: "Submitted to the email provider and accepted. Provider acceptance does not confirm delivery to the recipient's inbox.",
-        automatic: true,
-        created_by_name: "System",
       });
     } else if (ack.status === "skipped") {
-      await addActivity({
+      await logAckActivity({
         contact_id: result.contact.id,
         activity_type: "note",
         title: "Acknowledgement email not sent",
         body: `No acknowledgement email was sent — ${ack.reason}.`,
-        automatic: true,
-        created_by_name: "System",
       });
     } else {
-      await addActivity({
+      await logAckActivity({
         contact_id: result.contact.id,
         activity_type: "note",
         title: "Acknowledgement email failed",
         body: `The email provider returned an error, so no acknowledgement was sent — ${ack.reason}.`,
-        automatic: true,
-        created_by_name: "System",
       });
     }
   }
