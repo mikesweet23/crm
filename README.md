@@ -72,13 +72,26 @@ WordPress page and send enquiries straight into the pipeline.
 The embed route (`/embed/enquiry`) accepts query parameters: `source`, `heading`,
 `intro`, `accent`, `submit`, `fields` (comma list of `phone,preferred,category,message,marketing,source`),
 `bg` (`transparent`/`white`), `compact`, and `redirect` (booking URL shown after submit).
-Cross-site framing is allowed via a `frame-ancestors` policy on `/embed/*`.
+
+Framing of `/embed/*` is restricted by a `Content-Security-Policy: frame-ancestors`
+header to Absolute Mind domains (`absolutemind.co.uk`, `paulasweet.co.uk`, the CRM
+itself and `localhost:3000`). Override the allowlist with `EMBED_FRAME_ANCESTORS`
+(see `.env.example`); it is read at build time, so redeploy after changing it.
+
+## Spam protection
+
+The public form uses Cloudflare Turnstile plus a honeypot field. Set
+`NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` to enable it; with both
+unset (demo / local) no widget is rendered and the API skips verification.
 
 ## Database
 
 Run `supabase/migrations/001_initial.sql` in your Supabase SQL editor. Then create users for Paula (owner) and Mike (administrator) in Supabase Auth — profiles are created automatically via trigger.
 
 Set Vercel environment variables from `.env.example`, deploy, and add the custom domain `crm.absolutemind.co.uk`.
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for the full go-live checklist, including the
+Vercel Deployment Protection settings needed to keep `/enquiry` and `/embed.js` public.
 
 ## Version one success criteria
 
