@@ -49,7 +49,15 @@ export async function POST(request: Request) {
     return Response.json({ error: "Please wait a moment before submitting again." }, { status: 429 });
   }
 
-  const json = await request.json().catch(() => null);
+  const raw = await request.json().catch(() => null);
+  // Embedded forms omit some optional controls; JSON represents those as null.
+  // Normalize nulls so optional Zod fields accept the same payload as the full form.
+  const json =
+    raw && typeof raw === "object" && !Array.isArray(raw)
+      ? Object.fromEntries(
+          Object.entries(raw).map(([key, value]) => [key, value === null ? undefined : value]),
+        )
+      : raw;
   const parsed = schema.safeParse(json);
   if (!parsed.success) {
     return Response.json({ error: "Please check the form and try again." }, { status: 400 });
