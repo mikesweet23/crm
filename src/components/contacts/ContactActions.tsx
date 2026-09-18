@@ -3,8 +3,18 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
+import { Dialog } from "@/components/ui/Dialog";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { PIPELINE_STAGES, STAGE_LABELS, type PipelineStage } from "@/lib/types";
+
+const MODAL_TITLES: Record<string, string> = {
+  note: "Add note",
+  call: "Log call",
+  appointment: "Add appointment",
+  stage: "Change stage",
+  not_proceeding: "Mark not proceeding",
+  dnc: "Do Not Contact",
+};
 
 type Modal =
   | null
@@ -190,133 +200,135 @@ export function ContactActions({
         ))}
       </div>
 
-      {modal ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-4 sm:items-center">
-          <div className="animate-fade-up w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl sm:p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-ink">
-                {modal === "note" && "Add note"}
-                {modal === "call" && "Log call"}
-                {modal === "appointment" && "Add appointment"}
-                {modal === "stage" && "Change stage"}
-                {modal === "not_proceeding" && "Mark not proceeding"}
-                {modal === "dnc" && "Do Not Contact"}
-              </h2>
-              <button type="button" onClick={close} className="text-sm text-muted hover:text-ink">
-                Close
-              </button>
+      <Dialog open={!!modal} onClose={close} title={modal ? MODAL_TITLES[modal] : ""}>
+        {error ? (
+          <p className="mb-3 rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>
+        ) : null}
+
+        {modal === "note" ? (
+          <form onSubmit={onNote} className="space-y-4">
+            <Field label="Note">
+              <Textarea name="body" required placeholder="Administrative note only…" />
+            </Field>
+            <div className="flex gap-2">
+              <Button type="submit" disabled={pending}>
+                {pending ? "Saving…" : "Save note"}
+              </Button>
+              <Button type="button" variant="ghost" onClick={close}>
+                Cancel
+              </Button>
             </div>
+          </form>
+        ) : null}
 
-            {error ? (
-              <p className="mb-3 rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>
-            ) : null}
+        {modal === "call" ? (
+          <form onSubmit={onCall} className="space-y-4">
+            <Field label="Call summary">
+              <Textarea name="body" required placeholder="Spoke with… Consultation arranged…" />
+            </Field>
+            <div className="flex gap-2">
+              <Button type="submit" disabled={pending}>
+                {pending ? "Saving…" : "Log call"}
+              </Button>
+              <Button type="button" variant="ghost" onClick={close}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        ) : null}
 
-            {modal === "note" ? (
-              <form onSubmit={onNote} className="space-y-4">
-                <Field label="Note">
-                  <Textarea name="body" required placeholder="Administrative note only…" />
-                </Field>
-                <Button type="submit" disabled={pending}>
-                  Save note
-                </Button>
-              </form>
-            ) : null}
+        {modal === "stage" ? (
+          <form onSubmit={onStage} className="space-y-4">
+            <Field label="New stage">
+              <Select name="stage" defaultValue={currentStage}>
+                {PIPELINE_STAGES.map((s) => (
+                  <option key={s} value={s}>
+                    {STAGE_LABELS[s]}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <div className="flex gap-2">
+              <Button type="submit" disabled={pending}>
+                {pending ? "Saving…" : "Update stage"}
+              </Button>
+              <Button type="button" variant="ghost" onClick={close}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        ) : null}
 
-            {modal === "call" ? (
-              <form onSubmit={onCall} className="space-y-4">
-                <Field label="Call summary">
-                  <Textarea name="body" required placeholder="Spoke with… Consultation arranged…" />
-                </Field>
-                <Button type="submit" disabled={pending}>
-                  Log call
-                </Button>
-              </form>
-            ) : null}
-
-            {modal === "stage" ? (
-              <form onSubmit={onStage} className="space-y-4">
-                <Field label="New stage">
-                  <Select name="stage" defaultValue={currentStage}>
-                    {PIPELINE_STAGES.map((s) => (
-                      <option key={s} value={s}>
-                        {STAGE_LABELS[s]}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-                <Button type="submit" disabled={pending}>
-                  Update stage
-                </Button>
-              </form>
-            ) : null}
-
-            {modal === "not_proceeding" ? (
-              <div className="space-y-4">
-                <p className="text-sm text-muted">
-                  This marks the enquiry as not proceeding. They may contact Absolute Mind again.
-                  This is different from Do Not Contact.
-                </p>
-                <div className="flex gap-2">
-                  <Button type="button" onClick={onNotProceeding} disabled={pending}>
-                    Confirm
-                  </Button>
-                  <Button type="button" variant="ghost" onClick={close}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : null}
-
-            {modal === "dnc" ? (
-              <form onSubmit={onDnc} className="space-y-4">
-                <p className="rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger">
-                  Do Not Contact means proactive contact must stop. This is never removed
-                  automatically.
-                </p>
-                <Field label="Reason">
-                  <Textarea
-                    name="reason"
-                    required
-                    placeholder="Asked not to receive further contact."
-                  />
-                </Field>
-                <Button type="submit" variant="danger" disabled={pending}>
-                  Mark Do Not Contact
-                </Button>
-              </form>
-            ) : null}
-
-            {modal === "appointment" ? (
-              <form onSubmit={onAppointment} className="space-y-4">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="Date">
-                    <Input name="date" type="date" required />
-                  </Field>
-                  <Field label="Time">
-                    <Input name="time" type="time" required />
-                  </Field>
-                </div>
-                <Field label="Type">
-                  <Input name="type" defaultValue="Free consultation" />
-                </Field>
-                <Field label="Method">
-                  <Select name="method" defaultValue="telephone">
-                    <option value="telephone">Telephone</option>
-                    <option value="online">Online</option>
-                    <option value="in_person">In person</option>
-                  </Select>
-                </Field>
-                <Field label="Admin note" hint="Optional">
-                  <Textarea name="note" />
-                </Field>
-                <Button type="submit" disabled={pending}>
-                  Book appointment
-                </Button>
-              </form>
-            ) : null}
+        {modal === "not_proceeding" ? (
+          <div className="space-y-4">
+            <p className="text-sm text-muted">
+              This marks the enquiry as not proceeding. They may contact Absolute Mind again. This
+              is different from Do Not Contact.
+            </p>
+            <div className="flex gap-2">
+              <Button type="button" onClick={onNotProceeding} disabled={pending}>
+                {pending ? "Saving…" : "Confirm"}
+              </Button>
+              <Button type="button" variant="ghost" onClick={close}>
+                Cancel
+              </Button>
+            </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+
+        {modal === "dnc" ? (
+          <form onSubmit={onDnc} className="space-y-4">
+            <p className="rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger">
+              Do Not Contact means proactive contact must stop. This is never removed automatically.
+            </p>
+            <Field label="Reason">
+              <Textarea name="reason" required placeholder="Asked not to receive further contact." />
+            </Field>
+            <div className="flex gap-2">
+              <Button type="submit" variant="danger" disabled={pending}>
+                {pending ? "Saving…" : "Mark Do Not Contact"}
+              </Button>
+              <Button type="button" variant="ghost" onClick={close}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        ) : null}
+
+        {modal === "appointment" ? (
+          <form onSubmit={onAppointment} className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Date">
+                <Input name="date" type="date" required />
+              </Field>
+              <Field label="Time">
+                <Input name="time" type="time" required />
+              </Field>
+            </div>
+            <Field label="Type">
+              <Input name="type" defaultValue="Free consultation" />
+            </Field>
+            <Field label="Method">
+              <Select name="method" defaultValue="telephone">
+                <option value="telephone">Telephone</option>
+                <option value="online">Online</option>
+                <option value="in_person">In person</option>
+              </Select>
+            </Field>
+            <Field label="Admin note" hint="Optional">
+              <Textarea name="note" />
+            </Field>
+            <div className="flex gap-2">
+              <Button type="submit" disabled={pending}>
+                {pending ? "Saving…" : "Book appointment"}
+              </Button>
+              <Button type="button" variant="ghost" onClick={close}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        ) : null}
+      </Dialog>
     </>
   );
 }

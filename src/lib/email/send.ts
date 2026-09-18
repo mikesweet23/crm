@@ -2,6 +2,17 @@ import { Resend } from "resend";
 import type { Contact, Enquiry } from "@/lib/types";
 import { fullName, displayPhone } from "@/lib/phone";
 
+/**
+ * Outcome of an attempt to hand an email to the provider.
+ * - `sent`: the provider accepted the message (NOT a guarantee of inbox delivery).
+ * - `skipped`: nothing was attempted (provider not configured, no recipient, suppressed).
+ * - `failed`: the provider was called but rejected/errored the request.
+ */
+export type EmailResult =
+  | { status: "sent"; id: string | null }
+  | { status: "skipped"; reason: string }
+  | { status: "failed"; reason: string };
+
 function getResend() {
   const key = process.env.RESEND_API_KEY;
   if (!key) return null;
@@ -11,7 +22,7 @@ function getResend() {
 export async function sendPaulaEnquiryEmail(input: {
   contact: Contact;
   enquiry: Enquiry;
-}) {
+}): Promise<EmailResult> {
   const resend = getResend();
   const to = process.env.PAULA_NOTIFY_EMAIL || "paula@paulasweet.co.uk";
   const from = process.env.EMAIL_FROM || "Absolute Mind <onboarding@resend.dev>";
@@ -39,23 +50,32 @@ export async function sendPaulaEnquiryEmail(input: {
   `;
 
   if (!resend) {
-    console.info("[email:demo] Paula notification", subject);
-    return { id: "demo-paula", skipped: true as const };
+    console.info("[email] Paula notification skipped — provider not configured:", subject);
+    return { status: "skipped", reason: "email provider not configured" };
   }
 
-  const result = await resend.emails.send({ from, to, subject, html });
-  return { id: result.data?.id ?? null, skipped: false as const };
+  try {
+    const result = await resend.emails.send({ from, to, subject, html });
+    if (result.error) {
+      console.error("[email] Paula notification failed:", result.error);
+      return { status: "failed", reason: result.error.message || "provider error" };
+    }
+    return { status: "sent", id: result.data?.id ?? null };
+  } catch (err) {
+    console.error("[email] Paula notification threw:", err);
+    return { status: "failed", reason: err instanceof Error ? err.message : "provider error" };
+  }
 }
 
 export async function sendEnquiryAcknowledgement(input: {
   contact: Contact;
   skip?: boolean;
-}) {
+}): Promise<EmailResult> {
   if (input.skip || input.contact.do_not_contact) {
-    return { id: null, skipped: true as const };
+    return { status: "skipped", reason: "recipient is on Do Not Contact" };
   }
   if (!input.contact.email) {
-    return { id: null, skipped: true as const };
+    return { status: "skipped", reason: "no email address on file" };
   }
 
   const resend = getResend();
@@ -73,15 +93,24 @@ export async function sendEnquiryAcknowledgement(input: {
   `;
 
   if (!resend) {
-    console.info("[email:demo] Acknowledgement", subject, input.contact.email);
-    return { id: "demo-ack", skipped: true as const };
+    console.info("[email] Acknowledgement skipped — provider not configured:", input.contact.email);
+    return { status: "skipped", reason: "email provider not configured" };
   }
 
-  const result = await resend.emails.send({
-    from,
-    to: input.contact.email,
-    subject,
-    html,
-  });
-  return { id: result.data?.id ?? null, skipped: false as const };
+  try {
+    const result = await resend.emails.send({
+      from,
+      to: input.contact.email,
+      subject,
+      html,
+    });
+    if (result.error) {
+      console.error("[email] Acknowledgement failed:", result.error);
+      return { status: "failed", reason: result.error.message || "provider error" };
+    }
+    return { status: "sent", id: result.data?.id ?? null };
+  } catch (err) {
+    console.error("[email] Acknowledgement threw:", err);
+    return { status: "failed", reason: err instanceof Error ? err.message : "provider error" };
+  }
 }

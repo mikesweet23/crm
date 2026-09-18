@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card, PageHeader, Badge } from "@/components/ui/Card";
+import { AddContactButton } from "@/components/contacts/AddContactButton";
 import { listPipelineContacts } from "@/lib/data/crm";
 import { STAGE_LABELS } from "@/lib/types";
 import { displayPhone, fullName } from "@/lib/phone";
@@ -16,12 +17,15 @@ export default async function ContactsPage() {
         title="Contacts"
         description="Everyone Absolute Mind has spoken with — one record per person."
         actions={
-          <Link
-            href="/search"
-            className="inline-flex rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-strong"
-          >
-            Search
-          </Link>
+          <>
+            <Link
+              href="/search"
+              className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:border-brand hover:text-brand"
+            >
+              Search
+            </Link>
+            <AddContactButton />
+          </>
         }
       />
 

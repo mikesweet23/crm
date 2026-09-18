@@ -624,6 +624,48 @@ export function demoCreateAppointment(input: {
   return appt;
 }
 
+export function demoCreateContact(input: {
+  first_name: string;
+  last_name: string;
+  email?: string | null;
+  phone?: string | null;
+  lead_source?: string | null;
+  user: { id: string; name: string };
+}): Contact {
+  const now = new Date().toISOString();
+  const contact: Contact = {
+    id: randomUUID(),
+    first_name: input.first_name,
+    last_name: input.last_name,
+    email: normaliseEmail(input.email),
+    phone: normalisePhone(input.phone) ?? input.phone ?? null,
+    preferred_contact_method: null,
+    current_stage: "new_enquiry",
+    lead_source: input.lead_source ?? "Manual entry",
+    marketing_email: false,
+    marketing_sms: false,
+    do_not_contact: false,
+    do_not_contact_date: null,
+    do_not_contact_reason: null,
+    important_note: null,
+    first_enquiry_at: now,
+    last_activity_at: now,
+    created_at: now,
+    updated_at: now,
+  };
+  db().contacts.unshift(contact);
+  demoAddActivity({
+    contact_id: contact.id,
+    activity_type: "note",
+    title: "Contact created",
+    body: `Added manually by ${input.user.name}.`,
+    created_by: input.user.id,
+    created_by_name: input.user.name,
+    automatic: false,
+  });
+  return contact;
+}
+
 export function demoCreateEnquiry(input: {
   first_name: string;
   last_name: string;

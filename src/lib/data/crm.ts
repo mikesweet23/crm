@@ -1,6 +1,7 @@
 import {
   demoChangeStage,
   demoCreateAppointment,
+  demoCreateContact,
   demoCreateEnquiry,
   demoDashboard,
   demoGetContact,
@@ -229,6 +230,53 @@ export async function getContact(id: string): Promise<ContactWithRelations | nul
     appointments: (appointments ?? []) as Appointment[],
     next_appointment: next,
   };
+}
+
+export async function createContact(input: {
+  first_name: string;
+  last_name: string;
+  email?: string | null;
+  phone?: string | null;
+  lead_source?: string | null;
+  user: { id: string; name: string };
+}): Promise<Contact> {
+  if (isDemoMode()) return demoCreateContact(input);
+
+  const { createClient } = await import("@/lib/supabase/server");
+  const { normaliseEmail, normalisePhone } = await import("@/lib/phone");
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("contacts")
+    .insert({
+      first_name: input.first_name,
+      last_name: input.last_name,
+      email: normaliseEmail(input.email),
+      phone: normalisePhone(input.phone) ?? input.phone ?? null,
+      lead_source: input.lead_source ?? "Manual entry",
+      current_stage: "new_enquiry",
+      // Manual entry never assumes marketing consent.
+      marketing_email: false,
+      marketing_sms: false,
+      first_enquiry_at: now,
+      last_activity_at: now,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+
+  const contact = data as Contact;
+  await addActivity({
+    contact_id: contact.id,
+    activity_type: "note",
+    title: "Contact created",
+    body: `Added manually by ${input.user.name}.`,
+    created_by: input.user.id,
+    created_by_name: input.user.name,
+    automatic: false,
+  });
+  return contact;
 }
 
 export async function updateContact(id: string, patch: Partial<Contact>) {
