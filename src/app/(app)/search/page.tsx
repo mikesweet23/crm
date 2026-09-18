@@ -13,10 +13,7 @@ export default function SearchPage() {
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
-    if (q.trim().length < 2) {
-      setResults([]);
-      return;
-    }
+    if (q.trim().length < 2) return;
     const handle = setTimeout(() => {
       startTransition(async () => {
         const res = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}`);
@@ -40,7 +37,11 @@ export default function SearchPage() {
           autoFocus
           placeholder="Start typing a name, email or phone…"
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value;
+            setQ(value);
+            if (value.trim().length < 2) setResults([]);
+          }}
           aria-label="Search contacts"
         />
         <p className="mt-2 text-xs text-muted">
