@@ -13,6 +13,8 @@ import {
 import { HELP_CATEGORIES, LEAD_SOURCES } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+
 export interface EnquiryFormConfig {
   source?: string;
   heading?: string | null;
@@ -159,7 +161,11 @@ export function EnquiryForm(props: EnquiryFormConfig) {
             <button
               type="button"
               className="mt-6 text-sm font-medium text-brand"
-              onClick={() => setDone(false)}
+              onClick={() => {
+                setDone(false);
+                setTurnstileToken("");
+                setTurnstileNonce((n) => n + 1);
+              }}
             >
               Send another enquiry
             </button>
