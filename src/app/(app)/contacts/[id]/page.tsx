@@ -1,11 +1,13 @@
 import { notFound } from "next/navigation";
 import { Card, Badge, PageHeader } from "@/components/ui/Card";
 import { ContactActions } from "@/components/contacts/ContactActions";
+import { ContactEmail, ContactPhone } from "@/components/contacts/ContactChannels";
 import { ImportantNoteEditor } from "@/components/contacts/ImportantNoteEditor";
 import { getContact } from "@/lib/data/crm";
 import { STAGE_LABELS } from "@/lib/types";
-import { displayPhone, fullName } from "@/lib/phone";
+import { fullName } from "@/lib/phone";
 import { formatAppointmentSlot, formatDate, formatShortDateTime } from "@/lib/utils";
+import type { ReactNode } from "react";
 
 export async function generateMetadata(props: PageProps<"/contacts/[id]">) {
   const { id } = await props.params;
@@ -19,9 +21,23 @@ export default async function ContactPage(props: PageProps<"/contacts/[id]">) {
   const contact = await getContact(id);
   if (!contact) notFound();
 
-  const details = [
-    { label: "Telephone", value: displayPhone(contact.phone) || "—" },
-    { label: "Email", value: contact.email || "—" },
+  const details: { label: string; value: ReactNode }[] = [
+    {
+      label: "Telephone",
+      value: contact.phone ? (
+        <ContactPhone contactId={contact.id} phone={contact.phone} />
+      ) : (
+        "—"
+      ),
+    },
+    {
+      label: "Email",
+      value: contact.email ? (
+        <ContactEmail contactId={contact.id} email={contact.email} />
+      ) : (
+        "—"
+      ),
+    },
     {
       label: "Preferred contact",
       value: contact.preferred_contact_method
