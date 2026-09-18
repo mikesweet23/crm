@@ -191,7 +191,8 @@ Run these on production after every release:
       `/embed/enquiry` and `/embed.js` return 200 (§4).
 - [ ] With Turnstile keys set: the widget appears on `/enquiry`, a real submission
       succeeds, the contact lands in *New enquiry*, Paula's notification email and the
-      acknowledgement email arrive, and the timeline records the acknowledgement status.
+      acknowledgement email arrive, and the timeline records **both** outcomes
+      separately (each shows sent / not sent / failed).
 - [ ] Submit the same form with a stale/tampered token (e.g. from DevTools replay) →
       "Spam check failed" and no contact is created.
 - [ ] The live WordPress page renders the form inside the iframe and it resizes on
@@ -206,5 +207,5 @@ Run these on production after every release:
 | Form renders but submissions fail with "Please complete the spam check" | `TURNSTILE_SECRET_KEY` set but `NEXT_PUBLIC_TURNSTILE_SITE_KEY` missing at build time. Set both, redeploy. |
 | Widget shows an error / "could not load" | CRM hostname not in the Turnstile widget's hostname list, or a content blocker on the visitor's browser. |
 | Empty iframe on WordPress | Host origin not in `EMBED_FRAME_ANCESTORS`; check the browser console for a `frame-ancestors` violation. |
-| Emails not arriving | `RESEND_API_KEY` missing or the `EMAIL_FROM` domain is not verified in Resend. The contact timeline records why an acknowledgement was skipped or failed. |
+| Emails not arriving | `RESEND_API_KEY` missing or the `EMAIL_FROM` domain is not verified in Resend. Each enquiry sends two independent emails (acknowledgement + Paula notification); the contact timeline records, per email, why it was skipped or failed. |
 | Sample data on production | `DEMO_MODE` is `true` or Supabase keys are missing. |
