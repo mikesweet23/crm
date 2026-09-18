@@ -68,6 +68,10 @@ export const ACTIVITY_TYPES = [
   "do_not_contact_removed",
   "client_finished",
   "inbound_enquiry_dnc",
+  "call_opened",
+  "sms_opened",
+  "whatsapp_opened",
+  "email_opened",
 ] as const;
 
 export type ActivityType = (typeof ACTIVITY_TYPES)[number];
